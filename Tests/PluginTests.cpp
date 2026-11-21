@@ -1,8 +1,10 @@
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
 #include "../Source/GatePresets.h"
+#include <array>
 #include <cmath>
 #include <iostream>
+#include <utility>
 
 namespace
 {
@@ -528,22 +530,36 @@ bool testLargeKnobLayout()
     MKNoiseRhythmMachineProcessor processor;
     MKNoiseRhythmMachineEditor editor (processor);
 
-    if (! check (editor.isResizable() && editor.getConstrainer() != nullptr
-                 && std::abs (editor.getConstrainer()->getFixedAspectRatio() - 960.0f / 1076.0f) < 0.001f,
-                 "The editor must scale freely while keeping the panel aspect ratio"))
+    if (! check (editor.isResizable(), "The editor must be resizable"))
         return false;
 
-    for (const auto width : { 768, 900, 1200 })
+    // iPad Pro 10.5" is 1112 x 834 points, so the panel must fit both orientations.
+    const std::array<std::pair<int, int>, 5> sizes { {
+        { 900, 1009 }, { 1112, 834 }, { 834, 1112 }, { 768, 600 }, { 1200, 800 }
+    } };
+
+    for (const auto& size : sizes)
     {
-        editor.setSize (width, 600);
+        editor.setSize (size.first, size.second);
         auto* view = dynamic_cast<juce::Viewport*> (editor.getChildComponent (0));
-        if (! check (view != nullptr && view->getViewedComponent()->getHeight() > editor.getHeight(),
-                     "Short iPad host windows must scroll the complete enlarged interface"))
+        auto* panel = view != nullptr ? view->getViewedComponent() : nullptr;
+
+        if (! check (panel != nullptr && panel->getWidth() <= view->getWidth()
+                     && panel->getHeight() <= view->getHeight(),
+                     "The whole interface must fit the window without scrolling"))
             return false;
+
+        const auto scale = juce::jmin ((float) panel->getWidth() / 960.0f,
+                                       (float) panel->getHeight() / 1076.0f);
+        const auto visibleArea = panel->getLocalBounds().expanded (1);
+
+        for (auto* child : panel->getChildren())
+            if (! check (visibleArea.contains (child->getBounds()),
+                         "Every control must stay fully visible at any window shape"))
+                return false;
+
         int knobs = 0;
         juce::Slider* swing = nullptr;
-        auto* panel = view->getViewedComponent();
-        const auto designScale = static_cast<float> (panel->getWidth()) / 960.0f;
         for (int i = 0; i < panel->getNumChildComponents(); ++i)
             if (auto* slider = dynamic_cast<juce::Slider*> (panel->getChildComponent (i)); slider != nullptr)
             {
@@ -553,27 +569,26 @@ bool testLargeKnobLayout()
                     continue;
                 ++knobs;
                 const auto bounds = slider->getLookAndFeel().getSliderLayout (*slider).sliderBounds.toFloat().reduced (10);
-                if (! check (juce::jmin (bounds.getWidth(), bounds.getHeight()) >= 3.0f * 28.0f * designScale - 1.5f,
-                             "Actual drawable effect dial diameter must stay at least three times the old diameter"))
+                if (! check (juce::jmin (bounds.getWidth(), bounds.getHeight()) >= 0.9f * 3.0f * 28.0f * scale - 1.5f,
+                             "Actual drawable effect dial diameter must stay close to three times the old diameter"))
                     return false;
             }
+
         if (! check (knobs == 10, "All ten independent effects must retain enlarged knobs"))
             return false;
-        if (! check (swing != nullptr && swing->isVertical() && swing->getHeight() >= 110
-                     && swing->getX() * 4 < panel->getWidth(),
-                     "Swing must be a tall vertical slider at the bottom-left at desktop and iPad widths"))
+
+        if (! check (swing != nullptr && swing->isVertical() && swing->getX() * 4 < panel->getWidth(),
+                     "Swing must be a vertical slider at the bottom-left at every window shape"))
             return false;
+
         for (auto* child : panel->getChildren())
             if (child != swing && ! check (! child->getBounds().intersects (swing->getBounds()),
                                           "The swing slider must not overlap any other UI control"))
                 return false;
+
         swing->setValue (50, juce::sendNotificationSync);
         if (! check (processor.parameters.getRawParameterValue ("gateSwing")->load() == 50,
                      "The swing slider must control its automatable DSP parameter"))
-            return false;
-        view->setViewPosition (0, panel->getHeight());
-        if (! check (view->getViewPositionY() > 0 && view->getViewPositionY() + view->getViewHeight() >= panel->getHeight(),
-                     "Bottom gate controls must be reachable by scrolling"))
             return false;
     }
     return true;

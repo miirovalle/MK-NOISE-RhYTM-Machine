@@ -30,6 +30,22 @@ constexpr float gateControlX = 748.0f;
 constexpr float gateControlWidth = 180.0f;
 constexpr float gateControlTop = 810.0f;
 constexpr float gateControlPitch = 44.0f;
+
+/** Fits the whole 960 x 1076 design into the available area, centred, so nothing is ever clipped. */
+struct FittedDesign
+{
+    float scale = 1.0f;
+    float originX = 0.0f;
+    float originY = 0.0f;
+};
+
+FittedDesign fitDesign (float width, float height)
+{
+    const auto scale = juce::jmin (width / designWidth, height / designHeight);
+    return { scale,
+             (width - designWidth * scale) * 0.5f,
+             (height - designHeight * scale) * 0.5f };
+}
 }
 
 MKNoiseRhythmMachineEditor::MKNoiseRhythmMachineEditor (MKNoiseRhythmMachineProcessor& p)
@@ -38,7 +54,11 @@ MKNoiseRhythmMachineEditor::MKNoiseRhythmMachineEditor (MKNoiseRhythmMachineProc
     setLookAndFeel (&analogLookAndFeel);
 
 #if JUCE_IOS
-    setSize (768, 861);
+    // Fill the available screen so the panel can scale to fit either orientation without clipping.
+    auto screenArea = juce::Rectangle<int> { 0, 0, 1112, 834 };
+    if (auto* display = juce::Desktop::getInstance().getDisplays().getPrimaryDisplay())
+        screenArea = display->userArea;
+    setSize (juce::jmax (320, screenArea.getWidth()), juce::jmax (320, screenArea.getHeight()));
 #else
     setSize (900, 1009);
 #endif
@@ -260,17 +280,13 @@ MKNoiseRhythmMachineEditor::MKNoiseRhythmMachineEditor (MKNoiseRhythmMachineProc
     while (getNumChildComponents() > 0)
         panel.addAndMakeVisible (getChildComponent (0));
     viewport.setViewedComponent (&panel, false);
-    viewport.setScrollBarsShown (true, false);
+    viewport.setScrollBarsShown (false, false);
     viewport.setScrollOnDragMode (juce::Viewport::ScrollOnDragMode::nonHover);
     addAndMakeVisible (viewport);
 
-    // Added last so the resizer stays outside the scrolled panel.
+    // Added last so it stays on top of the scaled panel.
     setResizable (true, true);
-    setResizeLimits (juce::roundToInt (designWidth * 0.7f), juce::roundToInt (designHeight * 0.7f),
-                     juce::roundToInt (designWidth * 1.7f), juce::roundToInt (designHeight * 1.7f));
-
-    if (auto* boundsConstrainer = getConstrainer())
-        boundsConstrainer->setFixedAspectRatio (designWidth / designHeight);
+    setResizeLimits (480, 400, juce::roundToInt (designWidth * 2.0f), juce::roundToInt (designHeight * 2.0f));
 
     resized();
     timerCallback();
@@ -307,7 +323,7 @@ void MKNoiseRhythmMachineEditor::applyMetrics (const UiScale& ui)
         label.setFont (ui.font (8.0f));
 
     const auto readoutWidth = juce::jmax (44, ui.pixels (66.0f));
-    const auto readoutHeight = juce::jmax (14, ui.pixels (20.0f));
+    const auto readoutHeight = juce::jmax (10, ui.pixels (20.0f));
 
     for (auto& slider : voiceLevels)
         slider.setTextBoxStyle (juce::Slider::TextBoxRight, false, readoutWidth, readoutHeight);
@@ -331,14 +347,24 @@ void MKNoiseRhythmMachineEditor::paint (juce::Graphics& g)
 void MKNoiseRhythmMachineEditor::Panel::paint (juce::Graphics& g)
 {
     const auto area = getLocalBounds().toFloat();
-    mkui::AnalogLookAndFeel::drawDrawable (g, mkui::AnalogLookAndFeel::background(), area);
+    const auto fitted = fitDesign (area.getWidth(), area.getHeight());
 
-    const auto scale = area.getWidth() / designWidth;
+    // Extend the chassis behind the letterboxed margins so any window shape looks finished.
+    g.setGradientFill (juce::ColourGradient (juce::Colour (0xff191e19), area.getX(), area.getY(),
+                                             juce::Colour (0xff0f120f), area.getX(), area.getBottom(), false));
+    g.fillAll();
+
+    const juce::Rectangle<float> designArea { fitted.originX, fitted.originY,
+                                              designWidth * fitted.scale,
+                                              designHeight * fitted.scale };
+    mkui::AnalogLookAndFeel::drawDrawable (g, mkui::AnalogLookAndFeel::background(), designArea);
+
     g.setColour (mkui::colours::textDim.withAlpha (0.85f));
-    g.setFont (juce::Font (juce::FontOptions (juce::jmax (7.0f, 7.5f * scale))));
+    g.setFont (juce::Font (juce::FontOptions (juce::jmax (8.0f, 7.5f * fitted.scale))));
     g.drawText ("Gate12 curve engine by tiagolr / tilr - GPLv3",
-                juce::roundToInt (380.0f * scale), juce::roundToInt (1034.0f * scale),
-                juce::roundToInt (520.0f * scale), juce::roundToInt (16.0f * scale),
+                juce::roundToInt (designArea.getX() + 380.0f * fitted.scale),
+                juce::roundToInt (designArea.getY() + 1034.0f * fitted.scale),
+                juce::roundToInt (520.0f * fitted.scale), juce::roundToInt (16.0f * fitted.scale),
                 juce::Justification::centredRight);
 }
 
@@ -346,23 +372,12 @@ void MKNoiseRhythmMachineEditor::resized()
 {
     viewport.setBounds (getLocalBounds());
 
-    auto panelWidth = getWidth();
-    auto panelHeight = juce::roundToInt (panelWidth * designHeight / designWidth);
+    // The panel always fills the window and the design is scaled to fit inside it, so every
+    // control stays visible in any window shape (iPad portrait and landscape included).
+    panel.setSize (juce::jmax (1, viewport.getWidth()), juce::jmax (1, viewport.getHeight()));
 
-    if (panelHeight > getHeight() + 2)
-    {
-        panelWidth = juce::jmax (16, getWidth() - viewport.getScrollBarThickness());
-        panelHeight = juce::roundToInt (panelWidth * designHeight / designWidth);
-    }
-    else
-    {
-        // The design aspect ratio only needs a pixel of slack; never show a scrollbar for that.
-        panelHeight = juce::jmin (panelHeight, getHeight());
-    }
-
-    panel.setSize (panelWidth, panelHeight);
-
-    const UiScale ui { (float) panel.getWidth() / designWidth };
+    const auto fitted = fitDesign ((float) panel.getWidth(), (float) panel.getHeight());
+    const UiScale ui { fitted.scale, { fitted.originX, fitted.originY } };
     applyMetrics (ui);
 
     title.setBounds (ui.bounds (46.0f, 30.0f, 420.0f, 24.0f));

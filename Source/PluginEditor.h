@@ -18,11 +18,12 @@ private:
     /** Converts the 960 x 1076 design coordinates used by background.svg into pixels. */
     struct UiScale
     {
-        explicit UiScale (float scaleToUse) : scale (scaleToUse) {}
+        UiScale (float scaleToUse, juce::Point<float> originToUse)
+            : scale (scaleToUse), origin (originToUse) {}
 
         juce::Rectangle<int> bounds (float x, float y, float width, float height) const
         {
-            return { juce::roundToInt (x * scale), juce::roundToInt (y * scale),
+            return { juce::roundToInt (origin.x + x * scale), juce::roundToInt (origin.y + y * scale),
                      juce::roundToInt (width * scale), juce::roundToInt (height * scale) };
         }
 
@@ -30,11 +31,12 @@ private:
 
         juce::Font font (float designHeight, bool bold = false) const
         {
-            return juce::Font (juce::FontOptions (juce::jmax (7.0f, designHeight * scale),
+            return juce::Font (juce::FontOptions (juce::jmax (8.0f, designHeight * scale),
                                                   bold ? juce::Font::bold : juce::Font::plain));
         }
 
         float scale;
+        juce::Point<float> origin;
     };
 
     class Panel final : public juce::Component
