@@ -579,6 +579,31 @@ bool testLargeKnobLayout()
     return true;
 }
 
+bool testComboMenusStayInEditor()
+{
+    MKNoiseRhythmMachineProcessor processor;
+    MKNoiseRhythmMachineEditor editor (processor);
+    auto* view = dynamic_cast<juce::Viewport*> (editor.getChildComponent (0));
+    if (! check (view != nullptr, "The editor must scroll its panel"))
+        return false;
+
+    juce::ComboBox* combo = nullptr;
+    for (auto* child : view->getViewedComponent()->getChildren())
+        if (auto* box = dynamic_cast<juce::ComboBox*> (child); box != nullptr)
+        {
+            combo = box;
+            break;
+        }
+
+    if (! check (combo != nullptr, "The editor must expose its menus"))
+        return false;
+
+    juce::Label label;
+    const auto options = combo->getLookAndFeel().getOptionsForComboBoxPopupMenu (*combo, label);
+    return check (options.getParentComponent() == combo->getTopLevelComponent(),
+                  "Combo menus must open inside the editor: AUv3 extensions cannot create windows");
+}
+
 bool testPresetMenu()
 {
     MKNoiseRhythmMachineProcessor processor;
@@ -739,7 +764,7 @@ int main()
     processor.releaseResources();
     if (! testGateTiming() || ! testGate12Curves() || ! testEffectKnobs() || ! testCurveState()
         || ! testPitchShifter() || ! testGateSwing() || ! testPresetSemantics() || ! testStereoAndFilterGate() || ! testLargeKnobLayout()
-        || ! testPresetMenu())
+        || ! testComboMenusStayInEditor() || ! testPresetMenu())
         return 11;
     return 0;
 }

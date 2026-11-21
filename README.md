@@ -10,6 +10,8 @@ The editor is a green analog hardware panel drawn from the SVG artwork in `analo
 
 `Source/AnalogLookAndFeel.*` implements the skin while keeping the stock JUCE slider layout, so parameter behaviour, automation and accessibility are unchanged. Controls are laid out in the 960 × 1076 design space of `background.svg` and scaled to the current window, so the panel, fonts and artwork stay aligned at any size. The window is resizable with the design aspect ratio locked: drag the lower-right corner to scale the whole interface from 70% to 170%.
 
+Dropdown menus are opened inside the editor (`PopupMenu::Options::withParentComponent`) instead of as separate desktop windows. AUv3 app extensions cannot create windows, so the default JUCE popups never appeared in iOS hosts; hosting them in the editor also keeps them inside the plugin window on desktop builds.
+
 ## Effects
 
 Each layer's Pitch Shifter processes its generated audio over a -24 to +24 semitone range, before pan and mixing. It uses two crossfaded, variable-speed delay read heads with preallocated 60 ms grain windows; it is no longer a noise-generation frequency/color control. Pitch changes are smoothed. At zero semitones the shifter bypasses exactly; shifted attacks can be delayed/smeared by the grain window. White noise has no fundamental pitch, so pitch shifting is easiest to hear on mechanical/electrical noise.

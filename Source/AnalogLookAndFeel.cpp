@@ -279,6 +279,26 @@ juce::Font mkui::AnalogLookAndFeel::getComboBoxFont (juce::ComboBox& box)
     return juce::Font (juce::FontOptions (juce::jmax (9.0f, (float) box.getHeight() * 0.46f)));
 }
 
+juce::PopupMenu::Options mkui::AnalogLookAndFeel::getOptionsForComboBoxPopupMenu (juce::ComboBox& box,
+                                                                                 juce::Label& label)
+{
+    auto options = juce::LookAndFeel_V4::getOptionsForComboBoxPopupMenu (box, label)
+                       .withStandardItemHeight (juce::jmax (28, box.getHeight()));
+
+    // AUv3 app extensions cannot create windows, so the menu is hosted inside the editor instead of
+    // a desktop popup. This is JUCE's supported way for AUv3 hosts and also keeps the menu
+    // clipped to the plugin window on the desktop builds.
+    if (auto* topLevel = box.getTopLevelComponent())
+        options = options.withParentComponent (topLevel);
+
+    return options;
+}
+
+juce::Font mkui::AnalogLookAndFeel::getPopupMenuFont()
+{
+    return juce::Font (juce::FontOptions (15.0f));
+}
+
 void mkui::AnalogLookAndFeel::drawLabel (juce::Graphics& g, juce::Label& label)
 {
     if (dynamic_cast<juce::Slider*> (label.getParentComponent()) != nullptr && ! label.isBeingEdited())
