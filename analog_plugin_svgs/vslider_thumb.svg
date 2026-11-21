@@ -1,0 +1,21 @@
+<svg width="36" height="32" viewBox="0 0 36 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="vthumb-shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="1" dy="2" stdDeviation="2" flood-color="#050705" flood-opacity="0.85"/>
+    </filter>
+    <linearGradient id="fader-cap-v" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3d473d"/>
+      <stop offset="25%" stop-color="#768576"/>
+      <stop offset="48%" stop-color="#9aa89a"/>
+      <stop offset="52%" stop-color="#4e594e"/>
+      <stop offset="75%" stop-color="#6c7a6c"/>
+      <stop offset="100%" stop-color="#2c332c"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(18 16)">
+    <g filter="url(#vthumb-shadow)">
+      <rect x="-8" y="-11" width="16" height="22" rx="2" fill="url(#fader-cap-v)" stroke="#121612" stroke-width="1.2"/>
+      <line x1="-7" y1="0" x2="7" y2="0" stroke="#e6ede6" stroke-width="1"/>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,25 @@
+# Build output (CMake build trees, JUCE checkout, artefacts)
+build/
+build-*/
+out/
+Payload/
+
+# iOS / Xcode
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.ipa
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Design references (not part of the build) and packaged binaries
+/noise rhytm UI.jpg
+/noise rhytm UI X.jpg
+/perforator1.jpg
+/signal-*.jpg
+*.vst3/
+/MK NOISE RhYTM Machine.vst3.zip

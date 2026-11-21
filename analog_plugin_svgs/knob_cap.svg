@@ -1,0 +1,26 @@
+<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="knob-shadow" x="-25%" y="-25%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="3" stdDeviation="2.5" flood-color="#050705" flood-opacity="0.85"/>
+    </filter>
+    <radialGradient id="knob-cap-grad" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#3c453c"/>
+      <stop offset="65%" stop-color="#222822"/>
+      <stop offset="100%" stop-color="#131713"/>
+    </radialGradient>
+    <linearGradient id="bezel-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#586458"/>
+      <stop offset="100%" stop-color="#161a16"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(40 40)">
+    <g filter="url(#knob-shadow)">
+      <circle cx="0" cy="0" r="34" fill="#181c18" stroke="#0d100d" stroke-width="2"/>
+      <circle cx="0" cy="0" r="32" fill="none" stroke="#455045" stroke-width="2.5" stroke-dasharray="2.2 2.8"/>
+      <circle cx="0" cy="0" r="27" fill="url(#bezel-grad)"/>
+      <circle cx="0" cy="0" r="24" fill="url(#knob-cap-grad)" stroke="#111411" stroke-width="1"/>
+      <circle cx="0" cy="0" r="18" fill="none" stroke="#2c332c" stroke-width="1"/>
+      <rect x="-1.6" y="-23" width="3.2" height="12" rx="1.2" fill="#e6ede6"/>
+    </g>
+  </g>
+</svg>
