@@ -3,6 +3,7 @@ build/
 build-*/
 out/
 Payload/
+artifacts/
 
 # iOS / Xcode
 DerivedData/
